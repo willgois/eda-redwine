@@ -1,0 +1,545 @@
+Red Wine Exploration por William Gois Vitor
+========================================================
+
+Eu n„o bebo vinho e n„o tenho um vasto conhecimento sobre o assunto. Peguei essa amostra de dados, pois eu posso aprender muito sobre vinhos ao analisar essas amostras.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Carregue aqui todos os pacotes utilizados 
+# na sua an√°lise realizada neste arquivo fonte.
+
+# Note que o par√¢metro "echo" foi definido como FALSE neste c√≥digo.
+# Isso previne que o c√≥digo apresente resultados formatados em HTML.
+# Voc√™ deve definir echo=FALSE para todos os blocos de c√≥digo no seu arquivo.
+
+library(ggplot2)
+library(gridExtra)
+library(RColorBrewer)
+library(GGally)
+library(dplyr)
+library(pander)
+library(lazyeval)
+library(memisc)
+library(DAAG)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Carregamento dos dados
+red <- read.csv('wineQualityReds.csv')
+```
+
+## Vis„o Geral
+Este conjunto de dados contÈm 1.599 vinhos tintos com 11 vari·veis de propriedades quÌmicas do vinho. Ao menos 3 especialistas em vinhos avaliaram cada vinho, fornecendo uma nota entre 0 (muito ruim) e 10 (muito excelente).
+
+###Attribute information:
+1. fixed acidity (tartaric acid - g / dm^3)
+2. volatile acidity (acetic acid - g / dm^3)
+3. citric acid (g / dm^3)
+4. residual sugar (g / dm^3)
+5. chlorides (sodium chloride - g / dm^3)
+6. free sulfur dioxide (mg / dm^3)
+7. total sulfur dioxide (mg / dm^3)
+8. density (g / cm^3)
+9. pH
+10. sulphates (potassium sulphate - g / dm3)
+11. alcohol (% by volume)
+12. quality - based on sensory data (score between 0 and 10)
+
+###Description of attributes:
+1. fixed acidity: most acids involved with wine or fixed or nonvolatile (do not evaporate readily)
+2. volatile acidity: the amount of acetic acid in wine, which at too high of levels can lead to an unpleasant, vinegar taste
+3. citric acid: found in small quantities, citric acid can add 'freshness' and flavor to wines
+4. residual sugar: the amount of sugar remaining after fermentation stops, it's rare to find wines with less than 1 gram/liter and wines with greater than 45 grams/liter are considered sweet
+5. chlorides: the amount of salt in the wine
+6. free sulfur dioxide: the free form of SO2 exists in equilibrium between molecular SO2 (as a dissolved gas) and bisulfite ion; it prevents microbial growth and the oxidation of wine
+7. total sulfur dioxide: amount of free and bound forms of S02; in low concentrations, SO2 is mostly undetectable in wine, but at free SO2 concentrations over 50 ppm, SO2 becomes evident in the nose and taste of wine
+8. density: the density of water is close to that of water depending on the percent alcohol and sugar content
+9. pH: describes how acidic or basic a wine is on a scale from 0 (very acidic) to 14 (very basic); most wines are between 3-4 on the pH scale
+10. sulphates: a wine additive which can contribute to sulfur dioxide gas (S02) levels, wich acts as an antimicrobial and antioxidant
+11. alcohol: the percent alcohol content of the wine
+   
+Output variable (based on sensory data): 
+12. quality (score between 0 and 10)
+   
+# SeÁ„o de Gr·ficos Univariados
+```{r echo=FALSE, Univariate_Plots}
+print("Vari·veis")
+pandoc.list(names(red))
+
+print("Estrutura de Dados")
+str(red)
+
+print("Amostra")
+pandoc.table(head(red))
+
+print("Summary")
+pandoc.table(summary(red))
+
+```
+
+Para comeÁar o estudo, vou analisar a distribuiÁ„o das propriedade quÌmica dos vinhos tintos.
+
+```{r echo=FALSE, warning=FALSE, propriedades}
+p1 <- qplot(x = fixed.acidity, data = red, 
+      binwidth = 0.5)
+
+p2 <- qplot(x = volatile.acidity, data = red, 
+      binwidth = 0.05)
+
+p3 <- qplot(x = citric.acid, data = red, 
+      binwidth = 0.05)
+
+p4 <- qplot(x = residual.sugar, data = red, 
+      binwidth = 0.5)
+
+p5 <- qplot(x = chlorides, data = red, 
+      binwidth = 0.01)
+
+p6 <- qplot(x = free.sulfur.dioxide, data = red, 
+      binwidth = 5)
+
+p7 <- qplot(x = total.sulfur.dioxide, data = red, 
+      binwidth = 25)
+
+p8 <- qplot(x = density, data = red, 
+      binwidth = 0.001)
+
+p9 <- qplot(x = pH, data = red, 
+      binwidth = 0.05)
+
+p10 <- qplot(x = sulphates, data = red, 
+      binwidth = 0.1)
+
+p11 <- qplot(x = alcohol, data = red, 
+      binwidth = 0.2)
+
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,ncol=3)
+
+```
+
+Conforme podemos observar acima, podemos concluir que:
+
+DistribuiÁ„o Normal: density e o pH
+
+DistribuiÁ„o Assimetrica Positiva: fixed.acidity, volatile.acidity, citric.acid, free.sulfur.dioxide, total.sulfur.dioxide, sulphates, alcohol
+
+Cauda Longa: residual.sugar, chlorides
+
+
+###NormalizaÁ„o
+A distribuiÁ„o assimetrica e de cauda longa podem ser transformadas para uma distribuiÁ„o  que se pareÁa mais com uma normal, usando a raiz quadrada ou a funÁ„o de log.
+
+Vamos aplicar a funÁ„o logaritma e ver como fica as novas distribuiÁıes.
+
+```{r echo=FALSE, warning=FALSE, normalizacao}
+
+pn1 <- qplot(x = log10(fixed.acidity), data = red, 
+      binwidth = 0.05)
+
+pn2 <- qplot(x = log10(volatile.acidity), data = red, 
+      binwidth = 0.05)
+
+pn3 <- qplot(x = log10(citric.acid), data = red, 
+      binwidth = 0.1)
+
+pn4 <- qplot(x = log10(residual.sugar), data = red, 
+      binwidth = 0.05)
+
+pn5 <- qplot(x = log10(chlorides), data = red, 
+      binwidth = 0.05)
+
+pn6 <- qplot(x = log10(free.sulfur.dioxide), data = red, 
+      binwidth = 0.25)
+
+pn7 <- qplot(x = log10(total.sulfur.dioxide), data = red, 
+      binwidth = 0.1)
+
+pn10 <- qplot(x = log10(sulphates), data = red, 
+      binwidth = 0.05)
+
+pn11 <- qplot(x = log10(alcohol), data = red, 
+      binwidth = 0.05)
+
+grid.arrange(pn1,pn2,pn3,pn4,pn5,pn6,pn7,pn10,pn11,ncol=3)
+```
+
+ApÛs a aplicaÁ„o do log10, as curvas ficaram mais semelhantes com uma distribuiÁ„o normal, a unica exceÁ„o foi o citric.acid.
+
+O citric.acid apÛs a transformada acabou se tornando uma distribuiÁ„o assimetrica negativa. Vai ser interessante comparar o original com a transformaÁ„o log10 na an·lise bivariada.
+
+Uma outra observaÁ„o È que 8% dos vinhos n„o apresentam citric.acid, o que talvez indique que os valores dessa coluna n„o foram coletados de maneira adequada.
+
+###Qualidade
+
+A qualidade È a unica variavel categorica, que vai de 0-10, vamos dar uma olhada na sua distribuiÁ„o.
+
+```{r echo=FALSE, warning=FALSE, quality}
+ggplot(data=red, aes(x=quality)) +
+  geom_histogram(binwidth = 1)
+```
+
+A qualidade do vinho variou de 3 a 8, o valor mediano È 6 e a distribuiÁ„o È normal. Conforme mostrado acima, n„o temos muitos vinhos que s„o excelentes e vinhos que s„o pÈssimos
+
+# An·lise Univariada
+
+### Qual s„o a estrutura do conjunto de dados?
+A estrutura de dados possui 1599 observaÁıes de vinhos com 12 features. Todas as features s„o numÈricas, que representam as propriedades quÌmicas dos vinhos, com exceÁ„o da quality que È categÛrica.
+
+Boa parte dos vinhos est„o classificados com qualidade entre 5 e 6, sendo que temos alguns vinhos com qualidade bem baixa e a melhor qualidade È 8. Os Dados n„o est„o balanceados, podendo se mostrar um desafio para a criaÁ„o de um modelo.
+
+### Quais s„o os principais atributos de interesse deste conjunto de dados?
+O principal atributo de interesse È a qualidade. Ent„o a analise a ser realizada serve para tentar demostrar como as outras features influenciam na qualidade.
+
+### Quais outros atributos vocÍ acha que podem lhe auxiliar na investigaÁ„o destes atributos de interesse?
+Os ·cidos dos vinhos (fixed, volatile, citric.acid and pH) podem explicar como o gosto pode variar, igualmente como o residual.sugar pode indicar qu„o doce È o vinho e influenciando tambÈm o gosto.
+
+### VocÍ criou novas variaveis a partir dos atributos existentes no conjunto de dados?
+N„o, mas eu poderia criar vari·veis somando todos os ·cidos e todos os sulfur.
+
+### Dos atributos investigados, distribuiÁıes incomuns foram encontradas? VocÍ aplicou operaÁıes nos dados para limpalos, ajusta-los ou mudar a forma dos dados? Se sim, por que?
+Sim, conforme comentado acima algumas distribuiÁıes apresentaram ser assimÈtricas positivas e longa cauda, sendo a mais estranha delas a de acid.citric.
+
+Apliquei uma transformaÁ„o em log10 nas distribuiÁıes n„o normais para que elas ficassem mais semelhante a uma distribuiÁ„o normal e futuramente fazer analises que tragam um resultado mais assertivo
+
+# SeÁ„o de Gr·ficos Bivariados
+
+Primeiramente vou verificar a correlaÁ„o entre as features para tentar encontrar algum relacionamento entre elas, principalmente em relaÁ„o a qualidade.
+
+```{r echo=FALSE, warning=FALSE, Bivariate_Plots}
+round(cor(red), 3)
+
+```
+
+```{r echo=FALSE, warning=FALSE, Corr_Matriz, fig.height=14, fig.width=16}
+
+ggcorr(red[, 2:13], 
+       nbreaks = 4, 
+       label_round = 3, 
+       palette = "RdBu", 
+       label = TRUE, 
+       label_size = 5, 
+       label_color = "white", 
+       size = 4,
+       legend.size = 20)
+```
+Conforme podemos observar com os dados acima, as features que mais influenciam a qualidade s„o o alcohol, volatile.acidity, sulphates e citric.acid nessa ordem.
+
+Outras relaÁıes fortes que temos s„o do citric.acid com o pH, o fixed.acidity com o pH, a density com o fixed.acidity e o alcohol com a density. Isso sem contar os que fazem total sentido como os acid e os sulfur. A ˙nica exceÁ„o È o volatile.acidity, que teve um comportamento inverso do esperado com uma correlaÁ„o negativa em comparaÁ„o com os outros acid.
+
+Uma relaÁ„o estranha que temos entre as features s„o o volatile.acidity com o pH, ja que a correlaÁ„o deles deveriam ser negativa, pois quanto menor o pH maior È a acidez da soluÁ„o.
+
+Agora vamos utilizar alguns Box Plots para tentar enxergar mais alguma coisa.
+
+Primeiramente vamos transformar a qualidade em uma vari·vel categÛrica.
+
+```{r echo=FALSE, warning=FALSE, quality.categorica}
+
+red$quality.categorica<-cut(red$quality, 
+                          c(2.5,3.5,4.5,5.5,6.5,7.5,8.5),
+                          labels=c('3','4','5','6','7','8'))
+```
+
+```{r echo=FALSE, warning=FALSE, qualityxalcohol}
+
+ggplot(red, 
+       aes(x=quality.categorica, y=alcohol,fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("alcohol") +
+       ggtitle("Alchohol vs Quality")
+
+ggplot(red, 
+       aes(x=quality.categorica, y=log10(alcohol),fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("alcohol") +
+       ggtitle("log10Alchohol vs Quality")
+
+```
+
+Conforme podemos observar aqui, os melhores vinhos tÍm maior teor de ·lcool, tendo uma correlaÁ„o positiva.
+
+```{r echo=FALSE, warning=FALSE, qualityxvolatile.acidity}
+
+ggplot(red, 
+       aes(x=quality.categorica, y=volatile.acidity,fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("volatile.acidity") +
+       ggtitle("Volatile.acidity vs Quality")
+
+ggplot(red, 
+       aes(x=quality.categorica, y=log10(volatile.acidity) ,fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("volatile.acidity") +
+       ggtitle("log10Volatile.acidity vs Quality")
+
+```
+
+O volatile.acidity tem um impacto negativo na qualidade do vinho. Quanto maior a quantidade de volatile.acidity, menor a qualidade do vinho, tendo uma correlaÁ„o negativa.
+
+```{r echo=FALSE, warning=FALSE, qualityxsulphates}
+
+ggplot(red, 
+       aes(x=quality.categorica, y=sulphates,fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("sulphates") +
+       ggtitle("Sulphates vs Quality")
+ggplot(red, 
+       aes(x=quality.categorica, y=log10(sulphates),fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("sulphates") +
+       ggtitle("log10Sulphates vs Quality")
+
+```
+
+Apesar da grande quantidade de outliers, podemos observar que quanto mais sulphates melhor È o vinho, tendo uma correlaÁ„o positiva.
+
+```{r echo=FALSE, warning=FALSE, qualityxcitric.acid}
+
+ggplot(red, 
+       aes(x=quality.categorica, y=citric.acid,fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("citric.acid") +
+       ggtitle("Citric.acid vs Quality")
+
+ggplot(red, 
+       aes(x=quality.categorica, y=log10(citric.acid),fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("citric.acid") +
+       ggtitle("log10Citric.acid vs Quality")
+
+```
+
+O citric.acid tem uma correlaÁ„o positiva com a qualidade do vinho. Quanto mais citric.acid, melhor a qualidade.
+
+
+# An·lise Bivariada
+
+### Discuta sobre alguns dos relacionamentos observados nesta parte da investigaÁ„o. Como os atributos de interesse variaram no conjunto de dados?
+O atributo de interesse, que È a qualidade, demonstrou um forte correlaÁ„o positiva com o alcohol, sulphates e citric.acid. Apresentou tambÈm uma forte correlaÁ„o negativa com o volatile.acidity.
+A maioria dessas features apresentou uma grande quantidade de outliers, o que indica que cada uma sozinha n„o È o suficiente para fazer de um vinho bom, mas o conjunto delas pode. Creio que na prÛxima etapa deverei encontrar mais respostas.
+
+### VocÍ observou algum relacionamento interessante entre os outros atributos (os que n„o s„o de interesse)?
+O atributo que achei que teve um relacionamento bem interessante foi o do volatile.acidity com o pH, pois eles deveriam ter uma correlaÁ„o negativa, mas a correlaÁ„o foi positiva.
+
+### Qual foi o relacionamento mais forte encontrado?
+Do fixed.acidity com o pH, o que faz total sentindo j· que quanto maior o pH menor a acidez da soluÁ„o.
+J· em relaÁ„o a Qualidade, a feature com maior relacionamento È o alcohol.
+
+# SeÁ„o de Gr·ficos Multivariados
+
+Na An·lise Bivariada vimos que a qualidade demonstrou um forte correlaÁ„o com o alcohol, sulphates, citric.acid e volatile.acidity. Agora vamos criar gr·ficos de dispers„o para ver como a combinaÁ„o dessas features pode ajudar a compreender o que faz um vinho tinto ter uma boa qualidade.
+
+```{r echo=FALSE, warning=FALSE, sulphates&alcohol}
+
+ggplot(aes(x = sulphates, y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1") + 
+  geom_smooth(method = "lm", se = FALSE,size=1)
+
+ggplot(aes(x = log10(sulphates), y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1") + 
+  geom_smooth(method = "lm", se = FALSE,size=1)
+```
+
+Como podemos observar pelo gr·fico, existe uma faixa ideal de sulphates com alcohol que gera um bom vinho. A quest„o do teor de alcohol quanto maior se manteve verdadeira.
+Os melhores vinhos se encontram na parte superior do gr·fico.
+
+
+```{r echo=FALSE, warning=FALSE, citric.acid&alcohol}
+
+ggplot(aes(x = citric.acid, y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1)
+
+ggplot(aes(x = log10(citric.acid), y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1)
+```
+
+O padr„o de comportamento do gr·fico se assemelha um pouco com o anterior. Quanto maior o nivel de alcohol, melhor È o vinho. Os melhores vinhos se encontram na parte superior do gr·fico
+
+```{r echo=FALSE, warning=FALSE, volatile.acidity&alcohol}
+
+ggplot(aes(x = volatile.acidity, y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1)
+
+ggplot(aes(x = log10(volatile.acidity), y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1)
+```
+
+J· O padr„o de comportamento do gr·fico com o volatile.acidity se mostrou oposto. Quanto mais tivermos das duas features, melhor È o vinho.
+os melhores vinhos se encontram na parte superior do gr·fico.
+
+```{r echo=FALSE, warning=FALSE, citric.acid&sulphates}
+
+ggplot(aes(x = citric.acid, y = sulphates, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1) + scale_x_continuous(lim=c(quantile(red$citric.acid, 0.01),
+                           quantile(red$citric.acid, 0.99))) +
+  scale_y_continuous(lim=c(quantile(red$sulphates, 0.01),
+                           quantile(red$sulphates, 0.99))) 
+
+ggplot(aes(x = log10(citric.acid), y = log10(sulphates), colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1) 
+```
+
+O que podemos observar aqui nesse gr·fico È que teores baixos de sulphates com citric.acid na maior parte dos casos gera um vinho baixa-mÈdia qualidade. Sendo que boa parte dos vinhos de alta qualidade dominam o topo do gr·fico.
+
+```{r echo=FALSE, warning=FALSE, volatile.acidity&sulphates}
+
+ggplot(aes(x = volatile.acidity, y = sulphates, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1) + scale_x_continuous(lim=c(quantile(red$volatile.acidity, 0.01),
+                           quantile(red$volatile.acidity, 0.99))) +
+  scale_y_continuous(lim=c(quantile(red$sulphates, 0.01),
+                           quantile(red$sulphates, 0.99))) 
+
+ggplot(aes(x = log10(volatile.acidity), y = log10(sulphates), colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1) 
+```
+
+Como podemos observar, boa parte dos vinhos bons se concentra na parte superior esquerda do gr·fico, o que leva a entender que quanto mais volatile.acidity vocÍ tiver com sulphates, pior fica o vinho.
+
+```{r echo=FALSE, warning=FALSE, volatile.acidity&citric.acid}
+
+ggplot(aes(x = volatile.acidity, y = citric.acid, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1)  + scale_x_continuous(lim=c(quantile(red$volatile.acidity, 0.01),
+                           quantile(red$volatile.acidity, 0.99))) +
+  scale_y_continuous(lim=c(quantile(red$citric.acid, 0.01),
+                           quantile(red$citric.acid, 0.99))) 
+
+ggplot(aes(x = log10(volatile.acidity), y = log10(citric.acid), colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1")+ 
+  geom_smooth(method = "lm", se = FALSE,size=1) 
+```
+
+O padr„o entre essas duas features, o citric.acid e o volatile.acidity, n„o È t„o f·cil de explicar como a relaÁ„o delas altera a qualidade.
+
+##Modelo Linear
+
+Vou comeÁar com uma combinaÁ„o entre as 4 primeiras correlaÁıes mais fortes com a qualidade (alcohol x sulphates x citric.acid x volatile.acidity) em seguida vou utilizar mais 4 features com alta correlaÁ„o com a qualidade e o ph que tem uma forte correlaÁ„o com algumas dessas features. Utilizarei o R-quadrado para verificar o quanto esse modelo consegue explicar os nossos dados.
+
+
+```{r echo=FALSE, warning=FALSE, modeloLinear}
+
+m1 <- lm(quality ~ alcohol*sulphates*citric.acid*volatile.acidity, data = red)
+m2 <- update(m1, ~ . + pH*density*fixed.acidity*chlorides*total.sulfur.dioxide) 
+
+mtable(m1, m2)
+ 
+```
+
+O modelo consegue explicar 40% dos casos no conjunto de dados fornecido. O maior R-quadrado = 0,362 È fornecido pela primeira combinaÁ„o de par‚metros (alcohol x sulphates x citric.acid x volatile.acidity). 
+
+Mas deve ser levado em conta as limitaÁıes que esse modelo possui, j· que o Ìndice mais alto È 8/10 e o mais baixo È 3/10. Ter mais amostras, principalmente com pontuaÁıes abaixo de 3 e acima de 8, poderiam melhorar significativamente o poder preditivo do modelo.
+
+# An·lise Multivariada
+
+### Discuta sobre os relacionamentos observados nesta parte da investigaÁ„o. Quais atributos que fortaleceram os demais na observaÁ„o das vari·veis de interesse?
+Utilizando as 4 features que tem uma alta correlaÁ„o com a qualidade, podemos observar que todas elas acabaram gerando gr·ficos que davam para identificar um padr„o de comportamento, com exceÁ„o do citric.acid x volatile.acidity. Os vinhos com alta qualidade sempre est„o no topo do gr·fico.
+
+### InteraÁıes surpreendentes e/ou interessantes foram encontradas entre os atributos?
+Nada que j· n„o tenha sido observado na an·lise anterior
+
+### OPCIONAL: Modelos foram criados usando este conjunto de dados? Discuta sobre os pontos fortes e as limitaÁıes do seu modelo.
+Sim, foi utilizado um modelo linear, onde o modelo conseguiu explicar 40% dos casos. Uma limitaÁ„o do modelo, È o fato de n„o ter amostras com qualidade abaixo de 3 e acima de 8, o que poderia ter fornecido um melhor resultado.
+
+------
+
+# Gr·ficos Finais e Sum·rio
+
+### Primeiro Gr·fico
+```{r echo=FALSE, Plot_One}
+
+ggplot(data=red, aes(x=quality)) +
+  geom_bar() +
+  scale_x_continuous(breaks = seq(3,8,1))
+  ggtitle("Quality histogram")
+
+round(table(red$quality)/nrow(red), digits = 3)
+
+```
+
+### DescriÁ„o do Primeiro Gr·fico
+Como podemos observar no gr·fico, o conjunto de dados est· desequilibrado. A maior parte dos dados (82,5%) est„o na qualidade mÈdia (5 e 6), e uma pequena quantidade nos de baixa (3 e 4) e de alta (7 e 8). Sem contar que n„o temos dados de vinhos extremamente ruins (1 e 2) e extremamente bons (9 e 10), fazendo com que seja difÌcil entende o que faz um bom vinho.
+
+### Segundo Gr·fico
+```{r echo=FALSE, Plot_Two}
+
+ggplot(red, 
+       aes(x=quality.categorica, y=alcohol,fill=quality.categorica)) + 
+       geom_boxplot()+
+       xlab("quality") + ylab("alcohol") +
+       ggtitle("Alchohol vs Quality")
+
+cor.test(red$alcohol, red$quality)
+
+```
+
+### DescriÁ„o do Segundo Gr·fico
+O alcohol possui a correlaÁ„o mais forte com a qualidade (47,6%). Como podemos observar, ‡ medida que o teor do alcohol aumenta, a qualidade do vinho tambÈm aumenta.
+
+### Terceiro Gr·fico
+```{r echo=FALSE, warning=FALSE, Plot_Three}
+
+ggplot(aes(x = sulphates, y = alcohol, colour = quality.categorica), 
+       data = red) + 
+  geom_point(aes(size = quality.categorica)) +
+  scale_color_brewer(type = 'div', palette="Set1") + 
+  geom_smooth(method = "lm", se = FALSE,size=1) +
+  ggtitle("Alchohol vs Sulphates vs Quality")
+
+```
+
+### DescriÁ„o do Terceiro Gr·fico
+Podemos observar que existe uma faixa com alto teor de alcohol e uma quantidade mÈdia de sulphates que praticamente sÛ possui vinhos de boa qualidade. Mostrando um padr„o de como a combinaÁ„o dessas vari·veis podem gerar um bom vinho.
+
+# Reflex„o
+Esse estudo teve como interesse estudar a qualidade do vinho tinto utilizando 11 vari·veis que contÈm as propriedades quÌmicas de 1.599 amostras. O estudo mostrou que temos 4 propriedades que tem uma alta correlaÁ„o com a qualidade, sendo elas: alcohol (0,476); sulphates (0,251); citric.acid (0,226); volatile.acidity (-0,391). 
+
+Alcohol: … o fator n˙mero 1 relacionado ‡ qualidade do vinho. Os dados sugerem fortemente que quanto maior o teor de ·lcool, maior a probabilidade de ter um vinho de alta qualidade. O ·lcool no vinho e o resultado da fermentaÁ„o dos aÁ˙cares da uva (glicose e frutose) [1].
+Os apreciadores de vinhos informam que quanto mais ·lcool, mais macio, encorpado e saboroso ser· o vinho. Sendo que muitos sÛ consideram as vinhas no nÌvel ideal de maturidade se o seu potencial alcoÛlico chegar a 11 ou 13% [2]. Com essas informaÁıes podemos chegar ‡ conclus„o que os vinhos ruins, que tem um baixo teor alcoÛlico s„o feitos com uvas que n„o est„o maduras suficiente, n„o dando um sabor adequado a bebida.
+
+Volatile.acidity e citric.acid: O teor ·cido produz a sensaÁ„o de frescor e È respons·vel pela textura da bebida. Os ·cidos est„o ligados ao tipo de uva que foi utilizado ao se produzir o vinho. Uma uva n„o muito madura pode apresentar um gosto muito ·cido, sendo que o produtor deve escolher um equilÌbrio entre o aÁ˙car e a acidez durante a colheita [2].
+Esse fato de ter que escolher um equilÌbrio pode ser visto na seÁ„o da an·lise multivariada, onde os melhores vinhos tinham um teor alto de ·lcool e estavam em uma faixa especifica das propriedades ·cidas do vinho.
+
+Sulfatos: O sulfato È adicionado pelos produtores de vinho para evitar a deterioraÁ„o, n„o influenciando o sabor ou aroma [3].
+
+Uma das coisas que eu acreditava que tinha um grande potencial na qualidade do vinho era o aÁ˙car residual, mas sua correlaÁ„o com a qualidade foi bem baixa.
+
+Creio que a qualidade do vinho È algo bem complexo de se prever, sendo muito alÈm da perfeita combinaÁ„o de diferentes componentes quÌmicos, pois mesmo com a perfeita combinaÁ„o, h· muitas nuances em sabor e aroma que n„o podem ser mensuradas adequadamente atravÈs dos seus componentes quÌmicos.
+
+Como sugest„o para melhorar esse estudo seria uma coleta de dados de mais vinhos, principalmente os de baixa e alta qualidade, que se mostravam abaixo de 20% das amostras, tendo assim um conjunto de dados mais balanceados. Talvez assim seja possÌvel ter certeza se existe uma correlaÁ„o significativa entre um componente quÌmico e a qualidade do vinho.
+
+[1] - https://blog.famigliavalduga.com.br/qual-o-papel-do-teor-alcoolico-presente-no-vinho
+
+[2] - https://blog.artdescaves.com.br/qualidade-vinho-depende-teor-alcoolico
+
+[3] - http://en.wikipedia.org/wiki/Sulfite
+
